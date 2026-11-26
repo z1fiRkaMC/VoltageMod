@@ -48,7 +48,7 @@ public final class ElectricalNetworkManager {
         for (ElectricalBlockEntity be : components.values()) {
             be.addToNetwork(network);
         }
-        // simple MVP: connect adjacent electrical blockentities on all 6 dirs, matching terminal names phase<->phase, neutral<->neutral
+        // simple MVP: connect adjacent electrical blockentities on all 6 dirs.
         for (ElectricalBlockEntity be : components.values()) {
             BlockPos pos = be.getBlockPos();
             for (net.minecraft.util.Direction dir : net.minecraft.util.Direction.values()) {
@@ -70,12 +70,25 @@ public final class ElectricalNetworkManager {
     }
 
     private void connectMatching(ElectricalNetwork network, ElectricalBlockEntity a, ElectricalBlockEntity b) {
-        for (String ta : a.getTerminalIds()) {
-            for (String tb : b.getTerminalIds()) {
-                if (ta.equals(tb)) {
-                    network.connect(new ElectricalTerminal(a.getComponentId(), ta), new ElectricalTerminal(b.getComponentId(), tb));
-                }
-            }
+        connectFamily(network, a, b, "phase");
+        connectFamily(network, a, b, "neutral");
+    }
+
+    private void connectFamily(ElectricalNetwork network, ElectricalBlockEntity a, ElectricalBlockEntity b, String family) {
+        String ta = pickTerminal(a.getTerminalIds(), family);
+        String tb = pickTerminal(b.getTerminalIds(), family);
+        if (ta != null && tb != null) {
+            network.connect(new ElectricalTerminal(a.getComponentId(), ta), new ElectricalTerminal(b.getComponentId(), tb));
         }
+    }
+
+    private String pickTerminal(List<String> terminals, String family) {
+        boolean hasA = terminals.contains(family + "_a");
+        boolean hasB = terminals.contains(family + "_b");
+        if (hasA && hasB) return family + "_a"; // arbitrary side for MVP adjacency
+        if (terminals.contains(family)) return family;
+        if (hasA) return family + "_a";
+        if (hasB) return family + "_b";
+        return null;
     }
 }
