@@ -35,8 +35,12 @@ public class CableBlockEntity extends ElectricalBlockEntity {
                 String pb = context.getNodeId(id, "phase_b");
                 String na = context.getNodeId(id, "neutral_a");
                 String nb = context.getNodeId(id, "neutral_b");
-                ac.addElement(new AcImpedanceElement(id + "_phase", pa, pb, new Complex(resistance, reactance)));
-                ac.addElement(new AcImpedanceElement(id + "_neutral", na, nb, new Complex(0.001, 0.0)));
+                if (!pa.equals(pb)) {
+                    ac.addElement(new AcImpedanceElement(id + "_phase", pa, pb, new Complex(resistance, reactance)));
+                }
+                if (!na.equals(nb)) {
+                    ac.addElement(new AcImpedanceElement(id + "_neutral", na, nb, new Complex(0.001, 0.0)));
+                }
             }
         });
     }
