@@ -73,8 +73,9 @@ public final class ElectricalNetwork {
     }
 
     private static boolean isNeutral(ElectricalTerminal t) {
-        String id = t.getTerminalId();
-        return "neutral".equalsIgnoreCase(id) || "n".equalsIgnoreCase(id) || "gnd".equalsIgnoreCase(id) || "ground".equalsIgnoreCase(id);
+        String id = t.getTerminalId().toLowerCase(Locale.ROOT);
+        return "neutral".equals(id) || "n".equals(id) || "gnd".equals(id) || "ground".equals(id)
+                || id.startsWith("neutral_") || id.startsWith("gnd_") || id.startsWith("ground_");
     }
 
     private static ElectricalTerminal find(Map<ElectricalTerminal, ElectricalTerminal> parent, ElectricalTerminal x) {
