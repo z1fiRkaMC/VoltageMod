@@ -65,7 +65,6 @@ public final class ElectricalNetwork {
             }
             result.put(t, node);
         }
-        // Ensure any neutral-named terminal maps to ground for MVP.
         for (Map.Entry<ElectricalTerminal, String> e : result.entrySet()) {
             if (isNeutral(e.getKey())) e.setValue(groundNodeId);
         }
@@ -76,6 +75,11 @@ public final class ElectricalNetwork {
         String id = t.getTerminalId().toLowerCase(Locale.ROOT);
         return "neutral".equals(id) || "n".equals(id) || "gnd".equals(id) || "ground".equals(id)
                 || id.startsWith("neutral_") || id.startsWith("gnd_") || id.startsWith("ground_");
+    }
+
+    private static boolean isPhase(ElectricalTerminal t) {
+        String id = t.getTerminalId().toLowerCase(Locale.ROOT);
+        return "phase".equals(id) || id.startsWith("phase_");
     }
 
     private static ElectricalTerminal find(Map<ElectricalTerminal, ElectricalTerminal> parent, ElectricalTerminal x) {

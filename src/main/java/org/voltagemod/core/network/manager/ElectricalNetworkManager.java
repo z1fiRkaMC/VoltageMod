@@ -63,6 +63,8 @@ public final class ElectricalNetworkManager {
                 be.applySolution(solution);
             }
         } catch (Exception e) {
+            org.apache.logging.log4j.LogManager.getLogger(ElectricalNetworkManager.class)
+                    .warn("Electrical network solve failed", e);
             for (ElectricalBlockEntity be : components.values()) {
                 be.clearSolution();
             }
