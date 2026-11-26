@@ -1,0 +1,6 @@
+{
+  "block.voltagemod.generator": "Generator",
+  "block.voltagemod.cable": "Cable",
+  "block.voltagemod.load": "Load",
+  "block.voltagemod.meter": "Meter"
+}

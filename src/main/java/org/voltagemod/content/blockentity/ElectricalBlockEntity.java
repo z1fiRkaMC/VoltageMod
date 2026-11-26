@@ -60,4 +60,27 @@ public abstract class ElectricalBlockEntity extends TileEntity {
     public void load(net.minecraft.block.BlockState state, CompoundNBT tag) {
         super.load(state, tag);
     }
+
+    @Override
+    public CompoundNBT getUpdateTag() {
+        return save(new CompoundNBT());
+    }
+
+    @Override
+    public net.minecraft.network.play.server.SUpdateTileEntityPacket getUpdatePacket() {
+        return new net.minecraft.network.play.server.SUpdateTileEntityPacket(worldPosition, 0, getUpdateTag());
+    }
+
+    @Override
+    public void onDataPacket(net.minecraft.network.NetworkManager net, net.minecraft.network.play.server.SUpdateTileEntityPacket pkt) {
+        load(getBlockState(), pkt.getTag());
+    }
+
+    protected void syncToClient() {
+        if (level != null && !level.isClientSide) {
+            net.minecraft.block.BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+            setChanged();
+        }
+    }
 }

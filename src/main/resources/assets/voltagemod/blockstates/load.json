@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "voltagemod:block/load" }
+  }
+}

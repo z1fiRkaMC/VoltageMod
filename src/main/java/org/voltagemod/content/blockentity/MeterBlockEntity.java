@@ -30,7 +30,31 @@ public class MeterBlockEntity extends ElectricalBlockEntity {
             power = s.getReal();
             voltage = current > 0 ? apparent / current : 0;
             powerFactor = apparent > 0 ? power / apparent : 0;
-        } catch (Exception ignored) { clearSolution(); }
+        } catch (Exception ignored) { clearSolution(); return; }
+        syncToClient();
     }
-    @Override public void clearSolution() { voltage = current = power = powerFactor = 0; }
+    @Override public void clearSolution() { voltage = current = power = powerFactor = 0; syncToClient(); }
+
+    @Override
+    public net.minecraft.nbt.CompoundNBT save(net.minecraft.nbt.CompoundNBT tag) {
+        tag.putDouble("voltage", voltage);
+        tag.putDouble("current", current);
+        tag.putDouble("power", power);
+        tag.putDouble("powerFactor", powerFactor);
+        return super.save(tag);
+    }
+
+    @Override
+    public void load(net.minecraft.block.BlockState state, net.minecraft.nbt.CompoundNBT tag) {
+        super.load(state, tag);
+        voltage = tag.getDouble("voltage");
+        current = tag.getDouble("current");
+        power = tag.getDouble("power");
+        powerFactor = tag.getDouble("powerFactor");
+    }
+
+    public double getVoltage() { return voltage; }
+    public double getCurrent() { return current; }
+    public double getPower() { return power; }
+    public double getPowerFactor() { return powerFactor; }
 }
