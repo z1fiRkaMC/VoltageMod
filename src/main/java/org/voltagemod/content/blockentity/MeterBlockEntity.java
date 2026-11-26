@@ -15,21 +15,53 @@ public class MeterBlockEntity extends ElectricalBlockEntity {
     private double powerFactor;
 
     public MeterBlockEntity() { super(ModBlockEntities.METER.get()); }
+    private volatile String phaseNodeA;
+    private volatile String neutralNodeA;
+
     @Override public String getComponentId() { return "meter_" + getBlockPos().asLong(); }
-    @Override public List<String> getTerminalIds() { return Arrays.asList(LoadComponent.PHASE, LoadComponent.NEUTRAL); }
+    @Override public List<String> getTerminalIds() { return Arrays.asList("phase_a", "phase_b", "neutral_a", "neutral_b"); }
     @Override public void addToNetwork(ElectricalNetwork network) {
-        // High impedance probe to avoid altering circuit significantly
-        network.addComponent(new LoadComponent(getComponentId(), 1_000_000.0, 0.0));
+        final String id = getComponentId();
+        network.addComponent(new org.voltagemod.core.network.ElectricalComponent() {
+            @Override public String getId() { return id; }
+            @Override public List<String> getTerminalIds() { return MeterBlockEntity.this.getTerminalIds(); }
+            @Override
+            public void stamp(org.voltagemod.core.simulation.ac.AcNetwork ac, org.voltagemod.core.network.NetworkSolveContext context) {
+                String pa = context.getNodeId(id, "phase_a");
+                String pb = context.getNodeId(id, "phase_b");
+                String na = context.getNodeId(id, "neutral_a");
+                String nb = context.getNodeId(id, "neutral_b");
+                phaseNodeA = pa;
+                neutralNodeA = na;
+                org.voltagemod.core.physics.electrical.Complex z = new org.voltagemod.core.physics.electrical.Complex(0.001, 0.0);
+                if (!pa.equals(pb)) {
+                    ac.addElement(new org.voltagemod.core.simulation.ac.AcImpedanceElement(id + "_phase", pa, pb, z));
+                }
+                if (!na.equals(nb)) {
+                    ac.addElement(new org.voltagemod.core.simulation.ac.AcImpedanceElement(id + "_neutral", na, nb, z));
+                }
+            }
+        });
     }
     @Override public void applySolution(AcSolution solution) {
         try {
-            org.voltagemod.core.physics.electrical.Complex i = solution.getElementCurrent(getComponentId() + "_load");
-            org.voltagemod.core.physics.electrical.Complex s = solution.getElementPower(getComponentId() + "_load");
+            org.voltagemod.core.physics.electrical.Complex vPhase = phaseNodeA != null ? solution.getNodeVoltage(phaseNodeA) : org.voltagemod.core.physics.electrical.Complex.ZERO;
+            org.voltagemod.core.physics.electrical.Complex vNeutral = neutralNodeA != null ? solution.getNodeVoltage(neutralNodeA) : org.voltagemod.core.physics.electrical.Complex.ZERO;
+            org.voltagemod.core.physics.electrical.Complex v = vPhase.subtract(vNeutral);
+            voltage = v.magnitude();
+
+            org.voltagemod.core.physics.electrical.Complex i = org.voltagemod.core.physics.electrical.Complex.ZERO;
+            try {
+                i = solution.getElementCurrent(getComponentId() + "_phase");
+            } catch (Exception ignored) {
+                // open circuit / no phase segment
+            }
             current = i.magnitude();
+            org.voltagemod.core.physics.electrical.Complex s = new org.voltagemod.core.physics.electrical.Complex(v.getReal() * i.getReal() + v.getImaginary() * i.getImaginary(),
+                    v.getImaginary() * i.getReal() - v.getReal() * i.getImaginary());
             double apparent = s.magnitude();
             power = s.getReal();
-            voltage = current > 0 ? apparent / current : 0;
-            powerFactor = apparent > 0 ? power / apparent : 0;
+            powerFactor = apparent > 1e-9 ? Math.max(-1.0, Math.min(1.0, power / apparent)) : 0.0;
         } catch (Exception ignored) { clearSolution(); return; }
         syncToClient();
     }
