@@ -54,7 +54,7 @@ public final class ElectricalNetworkManager {
             for (net.minecraft.util.Direction dir : net.minecraft.util.Direction.values()) {
                 ElectricalBlockEntity other = components.get(pos.relative(dir));
                 if (other == null) continue;
-                connectMatching(network, be, other);
+                connectMatching(network, be, other, dir);
             }
         }
         try {
@@ -69,26 +69,32 @@ public final class ElectricalNetworkManager {
         }
     }
 
-    private void connectMatching(ElectricalNetwork network, ElectricalBlockEntity a, ElectricalBlockEntity b) {
-        connectFamily(network, a, b, "phase");
-        connectFamily(network, a, b, "neutral");
+    private void connectMatching(ElectricalNetwork network, ElectricalBlockEntity a, ElectricalBlockEntity b, net.minecraft.util.Direction dirFromAToB) {
+        connectFamily(network, a, b, "phase", dirFromAToB);
+        connectFamily(network, a, b, "neutral", dirFromAToB);
     }
 
-    private void connectFamily(ElectricalNetwork network, ElectricalBlockEntity a, ElectricalBlockEntity b, String family) {
-        String ta = pickTerminal(a.getTerminalIds(), family);
-        String tb = pickTerminal(b.getTerminalIds(), family);
+    private void connectFamily(ElectricalNetwork network, ElectricalBlockEntity a, ElectricalBlockEntity b, String family, net.minecraft.util.Direction dirFromAToB) {
+        String ta = pickTerminal(a.getTerminalIds(), family, dirFromAToB);
+        String tb = pickTerminal(b.getTerminalIds(), family, dirFromAToB.getOpposite());
         if (ta != null && tb != null) {
             network.connect(new ElectricalTerminal(a.getComponentId(), ta), new ElectricalTerminal(b.getComponentId(), tb));
         }
     }
 
-    private String pickTerminal(List<String> terminals, String family) {
+    private String pickTerminal(List<String> terminals, String family, net.minecraft.util.Direction dir) {
         boolean hasA = terminals.contains(family + "_a");
         boolean hasB = terminals.contains(family + "_b");
-        if (hasA && hasB) return family + "_a"; // arbitrary side for MVP adjacency
+        if (hasA && hasB) {
+            return isPositiveSide(dir) ? family + "_b" : family + "_a";
+        }
         if (terminals.contains(family)) return family;
         if (hasA) return family + "_a";
         if (hasB) return family + "_b";
         return null;
+    }
+
+    private boolean isPositiveSide(net.minecraft.util.Direction dir) {
+        return dir == net.minecraft.util.Direction.EAST || dir == net.minecraft.util.Direction.UP || dir == net.minecraft.util.Direction.SOUTH;
     }
 }
